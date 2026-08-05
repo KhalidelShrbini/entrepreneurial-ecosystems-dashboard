@@ -1,17 +1,36 @@
-# Emerging Market Entry Dashboard
+# Entrepreneurial Ecosystems Dashboard
 
-A business-analyst-style dashboard built with **Python, SQLite, and SQL** (no Power BI, no Kaggle account) —
-answering: *"Which developing countries look most attractive for market expansion right now?"*
+An interactive dashboard analyzing entrepreneurial ecosystem readiness across fragile and emerging
+markets, built on live World Bank data.
 
-Data comes live from the [World Bank Open Data API](https://data.worldbank.org) — free, no key or login required.
+**Live app:** https://entrepreneurial-ecosystems-dashboard.streamlit.app
 
-## What this proves
-- Pulling and cleaning real data via an API (`requests`, `pandas`)
-- Modeling data in SQL: CTEs, window functions (`LAG`, `ROW_NUMBER`), views, normalized scoring
-- Building your own composite metric (Market Opportunity Score) — not just plotting existing columns
-- An interactive, deployable dashboard (Streamlit) with filters and a live-adjustable model
+## Overview
 
-## Setup (run in your Mac terminal)
+The dashboard scores countries on a composite Ecosystem Readiness Score, weighing GDP growth, digital
+access, self-employment rate (a proxy for entrepreneurial activity), business regulatory environment,
+price stability, and labor market conditions. It includes a dedicated view for World Bank-classified
+Fragile and Conflict-affected States, regional comparisons, and a country-level deep dive.
+
+Insights and recommendations on the Executive Summary tab are generated programmatically from the
+underlying data, not hardcoded, so they update as the filters and score weights change.
+
+## Stack
+
+- **Data:** World Bank Open Data API (`requests`, `pandas`), pulled live, no key required
+- **Modeling:** SQLite with SQL views, CTEs, and window functions (`LAG`, `ROW_NUMBER`) for the scoring logic
+- **Visualization:** Streamlit + Plotly (choropleth map, treemap, correlation heatmap, quadrant analysis)
+
+## Files
+
+- `fetch_data_v7.py` -- pulls 14 World Bank indicators (GDP growth, self-employment, business regulatory
+  rating, agriculture share of GDP, etc.) for every country, with gap-filling for sparsely-reported indicators
+- `build_database_v4.py` -- loads data into SQLite, builds the `ecosystem_readiness_score` SQL view
+- `analysis_queries.sql` -- SQL queries: rankings, regional averages, year-over-year growth, trend deltas
+- `dashboard_v4.py` -- the Streamlit app
+- `export_html_report_v2.py` -- generates a standalone, self-contained HTML report for offline sharing
+
+## Running it locally
 
 ```bash
 cd market_dashboard
@@ -19,41 +38,31 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-# 1. Pull live data from the World Bank API
-python fetch_data.py
-
-# 2. Load it into SQLite + build the scoring view
-python build_database.py
-
-# 3. Launch the dashboard
-streamlit run dashboard.py
+python fetch_data_v7.py
+python build_database_v4.py
+streamlit run dashboard_v4.py
 ```
 
-Your browser will open automatically at `http://localhost:8501`.
+Opens at `http://localhost:8501`.
 
-## Explore the SQL directly
+## Exploring the SQL
 
 ```bash
 sqlite3 market_data.db
-.tables
-.schema market_opportunity_score
+.schema ecosystem_readiness_score
 ```
 
-Or run the example analyst queries:
+Or run the example analyst queries directly:
 
 ```bash
 sqlite3 market_data.db < analysis_queries.sql
 ```
 
-## Deploying it live (optional, free)
+## Notes
 
-Push this folder to a GitHub repo, then deploy at [share.streamlit.io](https://share.streamlit.io)
-(Streamlit Community Cloud) — you'll get a public URL to put on your resume/LinkedIn instead of just a screenshot.
-Note: you'll need to run `fetch_data.py` + `build_database.py` once and commit the resulting
-`market_data.db` (or the CSVs) to the repo, since Streamlit Cloud won't run your fetch script for you.
-
-## Files
-- `fetch_data.py` — pulls 12 World Bank indicators (GDP growth, internet penetration, inflation, etc.) for every country
-- `build_database.py` — loads data into SQLite, builds the `market_opportunity_score` SQL view
-- `analysis_queries.sql` — example analyst SQL: rankings, regional averages, YoY growth, trend deltas
-- `dashboard.py` — the Streamlit app itself
+- The Fragile and Conflict-affected States classification is a static reference list; verify against
+  the current official World Bank list before use in formal reporting.
+- Business regulatory environment data (CPIA rating) is only available for IDA-eligible countries.
+- The World Bank's "Doing Business" report, an earlier source for business-friction indicators, was
+  discontinued in 2021 following an internal ethics review. This project uses the CPIA Business
+  Regulatory Environment rating instead, which is still actively maintained.
