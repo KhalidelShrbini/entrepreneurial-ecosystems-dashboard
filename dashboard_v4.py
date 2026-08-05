@@ -1,6 +1,6 @@
 """
 Entrepreneurial Ecosystems Dashboard -- Fragile & Emerging Markets
-Run with:  streamlit run dashboard_v4.py
+Run with:  streamlit run dashboard_v6.py
 """
 
 import sqlite3
@@ -174,32 +174,85 @@ with tab_exec:
     c5.metric("Fragile/conflict states", int(filtered["is_fragile_or_conflict"].sum()))
 
     st.markdown("---")
-    left, right = st.columns([1.1, 0.9])
+
+    st.subheader("Ecosystem readiness, worldwide")
+    map_df = filtered.dropna(subset=["ecosystem_readiness_score"])
+    fig_map = px.choropleth(
+        map_df, locations="country_code", color="ecosystem_readiness_score",
+        hover_name="country_name", color_continuous_scale=["#1C2733", "#4A6FA5", "#C9A227"],
+        projection="natural earth",
+    )
+    fig_map.update_geos(
+        bgcolor="rgba(0,0,0,0)", showframe=False, showcountries=True,
+        countrycolor="#263241", coastlinecolor="#263241", landcolor="#131B27", oceancolor="#0A0F18",
+    )
+    fig_map.update_layout(height=460, coloraxis_colorbar=dict(title="Score"), **LAYOUT)
+    st.plotly_chart(fig_map, use_container_width=True)
+
+    st.markdown("---")
+    v1, v2, v3 = st.columns(3)
+
+    with v1:
+        st.subheader("Top 10 by readiness")
+        top10 = filtered.sort_values("ecosystem_readiness_score", ascending=False).head(10)
+        fig = px.bar(top10, x="ecosystem_readiness_score", y="country_name", orientation="h",
+                      color="region", labels={"ecosystem_readiness_score": "Score", "country_name": ""})
+        fig.update_layout(yaxis={"categoryorder": "total ascending"}, height=380, showlegend=False, **LAYOUT)
+        st.plotly_chart(fig, use_container_width=True)
+
+    with v2:
+        st.subheader("GDP per capita, by income group")
+        trend = (timeseries.dropna(subset=["gdp_per_capita_usd"])
+                 .groupby(["year", "income_level"], as_index=False)["gdp_per_capita_usd"].mean())
+        fig2 = px.line(trend, x="year", y="gdp_per_capita_usd", color="income_level",
+                        labels={"gdp_per_capita_usd": "Avg GDP per capita (US$)"})
+        fig2.update_layout(height=380, showlegend=False, **LAYOUT)
+        st.plotly_chart(fig2, use_container_width=True)
+
+    with v3:
+        st.subheader("Avg readiness by region")
+        reg_avg = filtered.groupby("region", as_index=False)["ecosystem_readiness_score"].mean().sort_values(
+            "ecosystem_readiness_score", ascending=False)
+        fig3 = px.bar(reg_avg, x="ecosystem_readiness_score", y="region", orientation="h",
+                       labels={"ecosystem_readiness_score": "Avg score", "region": ""})
+        fig3.update_traces(marker_color=PALETTE[0])
+        fig3.update_layout(yaxis={"categoryorder": "total ascending"}, height=380, **LAYOUT)
+        st.plotly_chart(fig3, use_container_width=True)
+
+    st.markdown("---")
+    v4, v5 = st.columns(2)
+
+    with v4:
+        st.subheader("Population by region")
+        pop_df = filtered.dropna(subset=["population", "region"])
+        fig4 = px.treemap(pop_df, path=[px.Constant("All regions"), "region", "country_name"],
+                           values="population", color="ecosystem_readiness_score",
+                           color_continuous_scale=["#1C2733", "#4A6FA5", "#C9A227"])
+        fig4.update_layout(height=420, coloraxis_colorbar=dict(title="Score"), **LAYOUT)
+        st.plotly_chart(fig4, use_container_width=True)
+
+    with v5:
+        st.subheader("Distribution of readiness scores")
+        fig5 = px.histogram(filtered.dropna(subset=["ecosystem_readiness_score"]),
+                             x="ecosystem_readiness_score", nbins=25, color_discrete_sequence=[PALETTE[0]])
+        fig5.add_vline(x=filtered["ecosystem_readiness_score"].mean(), line_dash="dot", line_color="#E8E8E8",
+                        annotation_text="mean", annotation_font_color="#E8E8E8")
+        fig5.update_layout(height=420, bargap=0.05,
+                            xaxis_title="Ecosystem readiness score", yaxis_title="Number of countries", **LAYOUT)
+        st.plotly_chart(fig5, use_container_width=True)
+
+    st.markdown("---")
+    left, right = st.columns(2)
 
     with left:
         st.subheader("Key insights")
         for point in build_insights(filtered):
             st.markdown(f'<div class="insight-item">{point}</div>', unsafe_allow_html=True)
 
+    with right:
         st.subheader("Recommendations")
         for point in build_recommendations(filtered):
             st.markdown(f'<div class="insight-item">{point}</div>', unsafe_allow_html=True)
-
-    with right:
-        st.subheader("Top 10 markets by readiness")
-        top10 = filtered.sort_values("ecosystem_readiness_score", ascending=False).head(10)
-        fig = px.bar(top10, x="ecosystem_readiness_score", y="country_name", orientation="h",
-                      color="region", labels={"ecosystem_readiness_score": "Score", "country_name": ""})
-        fig.update_layout(yaxis={"categoryorder": "total ascending"}, height=420, showlegend=False, **LAYOUT)
-        st.plotly_chart(fig, use_container_width=True)
-
-        st.subheader("GDP per capita, by income group")
-        trend = (timeseries.dropna(subset=["gdp_per_capita_usd"])
-                 .groupby(["year", "income_level"], as_index=False)["gdp_per_capita_usd"].mean())
-        fig2 = px.line(trend, x="year", y="gdp_per_capita_usd", color="income_level",
-                        labels={"gdp_per_capita_usd": "Avg GDP per capita (US$)"})
-        fig2.update_layout(height=300, **LAYOUT)
-        st.plotly_chart(fig2, use_container_width=True)
 
 # ============================== MARKET READINESS ==============================
 with tab_readiness:
