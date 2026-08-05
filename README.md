@@ -66,3 +66,4 @@ sqlite3 market_data.db < analysis_queries.sql
 - The World Bank's "Doing Business" report, an earlier source for business-friction indicators, was
   discontinued in 2021 following an internal ethics review. This project uses the CPIA Business
   Regulatory Environment rating instead, which is still actively maintained.
+# redeploy
