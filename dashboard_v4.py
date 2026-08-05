@@ -1,6 +1,6 @@
 """
-Entrepreneurial Ecosystems Dashboard -- Fragile & Emerging Markets
-Run with:  streamlit run dashboard_v6.py
+Entrepreneurial Ecosystems Dashboard: Fragile & Emerging Markets
+Run with:  streamlit run dashboard_v4.py
 """
 
 import sqlite3
@@ -27,8 +27,9 @@ st.markdown("""
     [data-testid="stMetricLabel"] { color: #9AA5B1; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
     h1 { font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0; }
     h2, h3 { letter-spacing: -0.01em; }
+    h3 { font-size: 1.3rem; font-weight: 650; }
     .subtitle { color: #7C8896; font-size: 0.95rem; margin-top: 2px; margin-bottom: 1.5rem; }
-    .stTabs [data-baseweb="tab"] { font-size: 0.95rem; padding: 8px 16px; }
+    .stTabs [data-baseweb="tab"] { font-size: 1.1rem; font-weight: 600; padding: 10px 18px; }
     .fcs-badge {
         background: #B5654A; color: white; padding: 2px 10px; border-radius: 3px;
         font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
@@ -90,7 +91,7 @@ def build_insights(df: pd.DataFrame) -> list[str]:
         se = d.dropna(subset=["self_employed_pct"]).sort_values("self_employed_pct", ascending=False).iloc[0]
         insights.append(
             f"<b>{se['country_name']}</b> has the highest measured self-employment rate in view "
-            f"({se['self_employed_pct']:.0f}% of total employment) -- a strong proxy for informal entrepreneurial density."
+            f"({se['self_employed_pct']:.0f}% of total employment), a strong proxy for informal entrepreneurial density."
         )
 
     if d["business_reg_rating"].notna().sum() >= 5:
@@ -108,7 +109,7 @@ def build_insights(df: pd.DataFrame) -> list[str]:
         c = corr_df["self_employed_pct"].corr(corr_df["internet_users_pct"])
         direction = "inversely" if c < -0.2 else ("positively" if c > 0.2 else "not strongly")
         insights.append(
-            f"Self-employment and internet penetration are {direction} correlated (r={c:.2f}) across the current view -- "
+            f"Self-employment and internet penetration are {direction} correlated (r={c:.2f}) across the current view. "
             f"{'high informal entrepreneurship often coincides with lower digital access, a possible digital-skills gap' if c < -0.2 else 'digitally connected markets tend to show more formal entrepreneurial activity' if c > 0.2 else 'no clear pattern emerges from the current sample'}."
         )
 
@@ -119,7 +120,7 @@ def build_insights(df: pd.DataFrame) -> list[str]:
         gap = nonfcs_avg - fcs_avg
         insights.append(
             f"{fcs_count} fragile/conflict-affected states are in the current view, averaging a readiness score of "
-            f"{fcs_avg:.3f} versus {nonfcs_avg:.3f} elsewhere -- a gap of {gap:.3f} that reflects structural, not "
+            f"{fcs_avg:.3f} versus {nonfcs_avg:.3f} elsewhere, a gap of {gap:.3f} that reflects structural, not "
             f"opportunity-related, constraints."
         )
 
@@ -145,7 +146,7 @@ def build_recommendations(df: pd.DataFrame) -> list[str]:
         if not weak_reg_high_potential.empty:
             names = weak_reg_high_potential.sort_values("ecosystem_readiness_score", ascending=False).head(3)["country_name"].tolist()
             recs.append(f"<b>Regulatory-support opportunity:</b> {', '.join(names)} combine above-median entrepreneurial "
-                        f"activity with a below-median business regulatory environment rating -- a training/advocacy "
+                        f"activity with a below-median business regulatory environment rating. A training/advocacy "
                         f"programme on formalization could unlock latent activity here.")
 
     fcs_count = int(d["is_fragile_or_conflict"].sum())
@@ -155,7 +156,7 @@ def build_recommendations(df: pd.DataFrame) -> list[str]:
                     f"and adaptability factors that matter most in these markets.")
 
     recs.append("<b>Data caveat:</b> self-employment and business-registration-time indicators have partial "
-                "country coverage. Treat rankings as a screening layer, not a final decision input -- pair with "
+                "country coverage. Treat rankings as a screening layer, not a final decision input. Pair with "
                 "local ecosystem mapping before committing programme resources.")
     return recs
 
@@ -220,28 +221,6 @@ with tab_exec:
         st.plotly_chart(fig3, use_container_width=True)
 
     st.markdown("---")
-    v4, v5 = st.columns(2)
-
-    with v4:
-        st.subheader("Population by region")
-        pop_df = filtered.dropna(subset=["population", "region"])
-        fig4 = px.treemap(pop_df, path=[px.Constant("All regions"), "region", "country_name"],
-                           values="population", color="ecosystem_readiness_score",
-                           color_continuous_scale=["#1C2733", "#4A6FA5", "#C9A227"])
-        fig4.update_layout(height=420, coloraxis_colorbar=dict(title="Score"), **LAYOUT)
-        st.plotly_chart(fig4, use_container_width=True)
-
-    with v5:
-        st.subheader("Distribution of readiness scores")
-        fig5 = px.histogram(filtered.dropna(subset=["ecosystem_readiness_score"]),
-                             x="ecosystem_readiness_score", nbins=25, color_discrete_sequence=[PALETTE[0]])
-        fig5.add_vline(x=filtered["ecosystem_readiness_score"].mean(), line_dash="dot", line_color="#E8E8E8",
-                        annotation_text="mean", annotation_font_color="#E8E8E8")
-        fig5.update_layout(height=420, bargap=0.05,
-                            xaxis_title="Ecosystem readiness score", yaxis_title="Number of countries", **LAYOUT)
-        st.plotly_chart(fig5, use_container_width=True)
-
-    st.markdown("---")
     left, right = st.columns(2)
 
     with left:
@@ -271,7 +250,7 @@ with tab_readiness:
         st.subheader("Activity vs. regulatory environment quadrant")
         st.markdown('<p class="section-note">Self-employment rate (entrepreneurial activity) vs. World Bank CPIA '
                     'business regulatory environment rating. Bottom-right: high activity despite a weak regulatory '
-                    'environment -- often the strongest case for policy-focused support.</p>',
+                    'environment. Often the strongest case for policy-focused support.</p>',
                     unsafe_allow_html=True)
         qd = filtered.dropna(subset=["self_employed_pct", "business_reg_rating"])
         if not qd.empty:
@@ -343,7 +322,7 @@ with tab_fragile:
 
     st.subheader("Fragile & conflict-affected states")
     st.markdown('<p class="section-note">World Bank FCS classification. This segment structurally scores lower on '
-                'standard readiness metrics -- treat as a distinct analytical lens, not a lower-priority list.</p>',
+                'standard readiness metrics. Treat as a distinct analytical lens, not a lower-priority list.</p>',
                 unsafe_allow_html=True)
 
     if fcs.empty:
@@ -365,7 +344,9 @@ with tab_fragile:
 
 # ============================== COUNTRY DEEP DIVE ==============================
 with tab_country:
-    country = st.selectbox("Pick a country", sorted(snapshot["country_name"].dropna().unique()))
+    country_list = sorted(snapshot["country_name"].dropna().unique())
+    default_idx = country_list.index("Ethiopia") if "Ethiopia" in country_list else 0
+    country = st.selectbox("Pick a country", country_list, index=default_idx)
     cdata = snapshot[snapshot["country_name"] == country].iloc[0]
     c_ts = timeseries[timeseries["country_name"] == country].sort_values("year")
 
