@@ -3,7 +3,7 @@
 An interactive dashboard analyzing entrepreneurial ecosystem readiness across fragile and emerging
 markets, built on live World Bank data.
 
-**Live app:** https://entrepreneurial-ecosystems-dashboard.streamlit.app
+**Live app:** https://khalid-entrepreneurial-ecosystems.streamlit.app
 
 ## Overview
 
