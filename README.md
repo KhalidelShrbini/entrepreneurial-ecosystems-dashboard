@@ -1,69 +1,73 @@
-# Entrepreneurial Ecosystems Dashboard
+# KSE Backtest Platform
 
-An interactive dashboard analyzing entrepreneurial ecosystem readiness across fragile and emerging
-markets, built on live World Bank data.
+A live, multi-asset quantitative strategy backtesting terminal built in a single Streamlit/Python file — no database, no backend server, just live market data and a real cost/risk engine underneath it.
 
-**Live app:** https://entrepreneurial-ecosystems-dashboard.streamlit.app
+**[Live app →](https://kse-backtest-platform.streamlit.app)**
 
-## Overview
+---
 
-The dashboard scores countries on a composite Ecosystem Readiness Score, weighing GDP growth, digital
-access, self-employment rate (a proxy for entrepreneurial activity), business regulatory environment,
-price stability, and labor market conditions. It includes a dedicated view for World Bank-classified
-Fragile and Conflict-affected States, regional comparisons, and a country-level deep dive.
+## What it does
 
-Insights and recommendations on the Executive Summary tab are generated programmatically from the
-underlying data, not hardcoded, so they update as the filters and score weights change.
+Pick a stock or build a portfolio, choose a trading strategy, and see what would have actually happened if you'd traded it — with realistic costs, honest statistics, and validation methods designed to catch overfitting rather than hide it.
 
-## Stack
+## Features
 
-- **Data:** World Bank Open Data API (`requests`, `pandas`), pulled live, no key required
-- **Modeling:** SQLite with SQL views, CTEs, and window functions (`LAG`, `ROW_NUMBER`) for the scoring logic
-- **Visualization:** Streamlit + Plotly (choropleth map, treemap, correlation heatmap, quadrant analysis)
+**Strategies**
+- Moving-average crossover (trend-following), long or long/short
+- Mean reversion (Bollinger/z-score band), long or long/short
+- Portfolio: Buy & Hold, Equal Weight, Moving Average, absolute Momentum, and Cross-Sectional Momentum (relative-strength ranking across the universe)
 
-## Files
+**Execution realism**
+- Commission and slippage modeled as separate cost buckets, not lumped together
+- Square-root market impact model using live trading volume (cost scales with order size relative to a ticker's liquidity)
+- Borrow cost accrual for short positions
+- Volatility-targeted position sizing (leverage scales to a target annualized vol, computed with no lookahead)
+- Idle cash earns the risk-free rate you set, consistently reflected in Sharpe/Sortino
 
-- `fetch_data_v7.py` -- pulls 14 World Bank indicators (GDP growth, self-employment, business regulatory
-  rating, agriculture share of GDP, etc.) for every country, with gap-filling for sparsely-reported indicators
-- `build_database_v4.py` -- loads data into SQLite, builds the `ecosystem_readiness_score` SQL view
-- `analysis_queries.sql` -- SQL queries: rankings, regional averages, year-over-year growth, trend deltas
-- `dashboard_v4.py` -- the Streamlit app
-- `export_html_report_v2.py` -- generates a standalone, self-contained HTML report for offline sharing
+**Validation & statistics**
+- Walk-forward validation (multi-fold, re-optimized per fold, with a fixed warm-up-window bug that a lot of backtesters get wrong)
+- Deflated Sharpe Ratio (Bailey & López de Prado, 2014) — corrects for the multiple-testing bias of scanning many parameter combinations and reporting the best one
+- Autocorrelation-adjusted Sharpe Ratio (Lo, 2002) — corrects for the fact that trend-following returns aren't independent day to day
+- Newey-West (HAC) standard errors on alpha significance, not naive OLS
+- Block-bootstrap confidence intervals on Sharpe and CAGR
+- Beta/alpha decomposition vs. a selectable benchmark
+- Monte Carlo simulation (10,000 trade-resampled paths) with probability-of-profit, probability of beating benchmark, and drawdown probabilities
 
-## Running it locally
+**Market terminal UI**
+- Live, animated ticker tape across 100+ global equities (US, Netherlands, Germany, France, UK)
+- Global search (ticker, company name, or sector)
+- Clickable everything: tape → stock detail, sector performance → filtered stock list, movers → stock detail
+- Stock detail pages with an interactive Plotly range-selector chart (1M/3M/6M/YTD/1Y/5Y/All)
+- Session watchlist and one-click "add to portfolio" from anywhere in the app
+- Market breadth, sector performance, region performance, top gainers/losers, most volatile
+
+## Data
+
+Live daily closes and volume pulled from Yahoo Finance via `yfinance` — refreshed automatically every 5 minutes, or on demand. There is deliberately **no static CSV fallback**: if the data provider is unreachable, the app shows an explicit error rather than silently serving stale numbers.
+
+## Tech stack
+
+Python · Streamlit · pandas · NumPy · Plotly · yfinance
+
+## Running locally
 
 ```bash
-cd market_dashboard
-python3 -m venv venv
-source venv/bin/activate
+git clone https://github.com/KhalidelShrbini/kse-backtest-platform.git
+cd kse-backtest-platform
 pip install -r requirements.txt
-
-python fetch_data_v7.py
-python build_database_v4.py
-streamlit run dashboard_v4.py
+streamlit run app.py
 ```
 
-Opens at `http://localhost:8501`.
+## Known limitations
 
-## Exploring the SQL
+Being upfront about what this is and isn't:
 
-```bash
-sqlite3 market_data.db
-.schema ecosystem_readiness_score
-```
+- **Survivorship bias** — the universe is 100+ large, currently-successful companies chosen in hindsight, not a realistic point-in-time universe.
+- **No point-in-time data store** — Yahoo Finance's adjusted-close series can be retroactively revised (new dividends/splits recompute historical adjustment factors), so this isn't a system of record for historical prices.
+- **Approximate market impact model** — a square-root heuristic, not a full limit-order-book simulation.
+- **Single-factor alpha only** — no decomposition against size, value, or other style factors (would need a Fama-French-style dataset this app doesn't have).
+- **Ticker-level multiple-testing is uncorrected** — the Deflated Sharpe Ratio corrects for scanning parameter combinations on one ticker, not for scanning the whole universe and picking whichever ticker looked best.
 
-Or run the example analyst queries directly:
+## License
 
-```bash
-sqlite3 market_data.db < analysis_queries.sql
-```
-
-## Notes
-
-- The Fragile and Conflict-affected States classification is a static reference list; verify against
-  the current official World Bank list before use in formal reporting.
-- Business regulatory environment data (CPIA rating) is only available for IDA-eligible countries.
-- The World Bank's "Doing Business" report, an earlier source for business-friction indicators, was
-  discontinued in 2021 following an internal ethics review. This project uses the CPIA Business
-  Regulatory Environment rating instead, which is still actively maintained.
-# redeploy
+MIT
