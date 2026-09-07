@@ -1,2 +1,5 @@
 entrepreneurial_ecosystems_report.html linguist-generated=true
 *.html linguist-generated=true
+schema.sql linguist-generated=false
+analysis_queries.sql linguist-generated=false
+*.sql linguist-detectable=true
